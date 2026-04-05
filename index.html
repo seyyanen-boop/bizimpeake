@@ -2,140 +2,184 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Peake 3D - Groq Hızıyla</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Peake 3D - Hibrit Sürüm</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        body { margin: 0; background: #000; color: white; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; overflow: hidden; }
-        .game-section { flex: 2; position: relative; border-right: 1px solid #333; }
-        .chat-section { flex: 1; display: flex; flex-direction: column; background: #0a0a0a; }
-        #game-container { width: 100%; height: 100%; cursor: none; }
-        .chat-header { background: #f55035; color: white; padding: 15px; text-align: center; font-weight: bold; letter-spacing: 1px; }
-        #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { padding: 10px 14px; border-radius: 12px; font-size: 14px; max-width: 80%; line-height: 1.4; }
-        .user-msg { align-self: flex-end; background: #f55035; color: white; }
-        .groq-msg { align-self: flex-start; background: #222; color: #eee; border: 1px solid #444; }
-        .input-area { padding: 15px; display: flex; gap: 8px; border-top: 1px solid #222; }
-        input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #111; color: white; outline: none; }
-        button { background: #f55035; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
-        button:hover { opacity: 0.8; }
-        .ui { position: absolute; top: 20px; left: 20px; font-size: 28px; color: #f55035; font-weight: bold; pointer-events: none; }
+        /* Ana Düzen */
+        body { margin: 0; background: #050505; color: white; font-family: 'Inter', sans-serif; display: flex; height: 100vh; overflow: hidden; }
+        
+        .container { display: flex; width: 100%; height: 100%; }
+        
+        /* Ekranı İkiye Böl (Masaüstü yan yana, Mobil alt alta) */
+        @media (max-width: 900px) {
+            .container { flex-direction: column; }
+        }
+
+        /* Oyun Alanı */
+        .game-section { flex: 2; position: relative; border-right: 1px solid #222; }
+        #game-container { width: 100%; height: 100%; outline: none; }
+
+        /* Sohbet Alanı */
+        .chat-section { flex: 1; display: flex; flex-direction: column; background: #0a0a0a; min-width: 350px; }
+        @media (max-width: 900px) {
+            .chat-section { flex: 1.5; min-width: 100%; height: 50%; }
+        }
+
+        .chat-header { background: #f55035; padding: 15px; text-align: center; font-weight: bold; font-size: 0.9rem; text-transform: uppercase; }
+        #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+        .msg { padding: 12px; border-radius: 12px; font-size: 14px; max-width: 85%; line-height: 1.5; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .user-msg { align-self: flex-end; background: #f55035; color: white; border-bottom-right-radius: 2px; }
+        .groq-msg { align-self: flex-start; background: #1e1e1e; color: #ddd; border: 1px solid #333; border-bottom-left-radius: 2px; }
+
+        .input-area { padding: 15px; display: flex; gap: 10px; background: #0a0a0a; border-top: 1px solid #222; }
+        input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #151515; color: white; outline: none; }
+        button { background: #f55035; color: white; border: none; padding: 0 20px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        button:active { transform: scale(0.95); }
+
+        /* Oyun İçi Yazılar */
+        .ui { position: absolute; top: 20px; left: 20px; font-size: 26px; color: #f55035; font-weight: 900; pointer-events: none; }
+        
+        /* Mobil Kontrol Butonları */
+        .controls { position: absolute; bottom: 30px; left: 0; right: 0; display: none; justify-content: space-around; padding: 0 20px; pointer-events: none; }
+        @media (max-width: 900px) { .controls { display: flex; } }
+        .btn { width: 70px; height: 70px; background: rgba(255,255,255,0.05); border: 2px solid #f55035; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: white; pointer-events: auto; user-select: none; -webkit-tap-highlight-color: transparent; }
     </style>
 </head>
 <body>
 
-    <div class="game-section">
-        <div class="ui">YÜKSEKLİK: <span id="height">0</span>m</div>
-        <div id="game-container"></div>
-    </div>
+    <div class="container">
+        <div class="game-section">
+            <div class="ui">PEAKE SCORE: <span id="height">0</span></div>
+            <div id="game-container"></div>
+            
+            <div class="controls">
+                <div class="btn" id="lBtn">←</div>
+                <div class="btn" id="rBtn">→</div>
+            </div>
+        </div>
 
-    <div class="chat-section">
-        <div class="chat-header">PEAKE AI (GROQ POWERED)</div>
-        <div id="messages"></div>
-        <div class="input-area">
-            <input type="text" id="userInput" placeholder="Hızlıca bir şey sor...">
-            <button id="sendBtn">GÖNDER</button>
+        <div class="chat-section">
+            <div class="chat-header">PEAKE GROQ ENGINE</div>
+            <div id="messages"></div>
+            <div class="input-area">
+                <input type="text" id="userInput" placeholder="Mesajını yaz...">
+                <button id="sendBtn">SOR</button>
+            </div>
         </div>
     </div>
 
 <script>
-    // --- GROQ AYARLARI ---
-    const GROQ_API_KEY = "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"; 
+    // --- GROQ API BAĞLANTISI ---
+    const GROQ_KEY = "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";
 
-    const msgDiv = document.getElementById("messages");
-
-    function addMessage(text, type) {
-        const div = document.createElement("div");
-        div.className = `msg ${type}-msg`;
-        div.innerText = text;
-        msgDiv.appendChild(div);
-        msgDiv.scrollTop = msgDiv.scrollHeight;
-    }
-
-    async function askGroq() {
+    async function chat() {
         const input = document.getElementById("userInput");
-        const prompt = input.value;
-        if (!prompt) return;
-
-        addMessage(prompt, 'user');
-        input.value = "";
+        if(!input.value) return;
+        const p = input.value; input.value = "";
+        addMsg(p, 'user');
 
         try {
-            const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${GROQ_API_KEY}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    model: "llama3-8b-8192", // Groq'un en hızlı modellerinden biri
-                    messages: [{ role: "user", content: prompt }]
-                })
+            const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST", headers: { "Authorization": `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
+                body: JSON.stringify({ model: "llama3-8b-8192", messages: [{role:"user", content:p}] })
             });
-
-            const data = await response.json();
-            const aiResponse = data.choices[0].message.content;
-            addMessage(aiResponse, 'groq');
-        } catch (e) {
-            addMessage("Hata: Groq anahtarını kontrol et!", 'groq');
-            console.error(e);
-        }
+            const d = await res.json();
+            addMsg(d.choices[0].message.content, 'groq');
+        } catch(e) { addMsg("Hata: Bağlantı kurulamadı.", 'groq'); }
     }
 
-    document.getElementById("sendBtn").onclick = askGroq;
-    document.getElementById("userInput").addEventListener("keypress", (e) => {
-        if (e.key === "Enter") askGroq();
-    });
+    function addMsg(t, s) {
+        const d = document.createElement("div");
+        d.className = `msg ${s}-msg`; d.innerText = t;
+        const m = document.getElementById("messages");
+        m.appendChild(d); m.scrollTop = m.scrollHeight;
+    }
 
-    // --- 3D OYUN (THREE.JS) ---
+    document.getElementById("sendBtn").onclick = chat;
+    document.getElementById("userInput").onkeypress = (e) => e.key==="Enter" && chat();
+
+    // --- 3D OYUN (ULTIMATE HYBRID) ---
     const container = document.getElementById('game-container');
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(renderer.domElement);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-    const player = new THREE.Mesh(new THREE.SphereGeometry(0.6, 32, 32), new THREE.MeshPhongMaterial({ color: 0xf55035 }));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    const light = new THREE.PointLight(0xf55035, 1, 50);
+    light.position.set(0, 10, 5);
+    scene.add(light);
+
+    // Karakter
+    const player = new THREE.Mesh(
+        new THREE.SphereGeometry(0.7, 32, 32),
+        new THREE.MeshStandardMaterial({ color: 0xf55035, roughness: 0.3, metalness: 0.8 })
+    );
     scene.add(player);
 
-    let yVel = 0, score = 0;
+    let yV = 0, xV = 0, score = 0;
     const platforms = [];
-    for(let i=0; i<20; i++) {
-        const p = new THREE.Mesh(new THREE.BoxGeometry(3, 0.4, 3), new THREE.MeshPhongMaterial({ color: 0x333333 }));
-        p.position.set((Math.random()-0.5)*12, i*4, (Math.random()-0.5)*12);
+
+    // Platformları oluştur
+    for(let i=0; i<30; i++) {
+        const p = new THREE.Mesh(
+            new THREE.BoxGeometry(3.5, 0.4, 3.5),
+            new THREE.MeshStandardMaterial({ color: 0x222222 })
+        );
+        p.position.set(Math.sin(i*1.1)*6, i*4.5, Math.cos(i*1.1)*3);
         scene.add(p);
         platforms.push(p);
     }
 
-    camera.position.z = 10;
+    camera.position.z = 12;
 
     function animate() {
         requestAnimationFrame(animate);
-        yVel -= 0.012; 
-        player.position.y += yVel;
+        yV -= 0.013; 
+        player.position.y += yV;
+        player.position.x += xV;
+        xV *= 0.92; // Yumuşak duruş
 
-        platforms.forEach(p => {
-            if (player.position.y > p.position.y && player.position.y < p.position.y + 0.5 &&
-                Math.abs(player.position.x - p.position.x) < 1.8 &&
-                Math.abs(player.position.z - p.position.z) < 1.8 && yVel < 0) {
-                yVel = 0.28; 
-                score = Math.max(score, Math.floor(p.position.y));
+        platforms.forEach((p, i) => {
+            if (player.position.y > p.position.y && player.position.y < p.position.y + 0.6 &&
+                Math.abs(player.position.x - p.position.x) < 2 &&
+                Math.abs(player.position.z - p.position.z) < 2 && yV < 0) {
+                yV = 0.32;
+                score = Math.max(score, i * 10);
                 document.getElementById('height').innerText = score;
             }
         });
 
-        camera.position.y = player.position.y + 3;
+        camera.position.lerp(new THREE.Vector3(player.position.x, player.position.y + 4, 13), 0.1);
         camera.lookAt(player.position.x, player.position.y, 0);
 
-        if (player.position.y < -10) { player.position.set(0,2,0); yVel = 0; }
+        if(player.position.y < -15) { player.position.set(0,2,0); yV = 0; score = 0; }
         renderer.render(scene, camera);
     }
 
-    container.addEventListener('mousemove', (e) => {
-        const rect = container.getBoundingClientRect();
-        player.position.x = (((e.clientX - rect.left) / container.clientWidth) * 2 - 1) * 8;
-        player.position.z = (((e.clientY - rect.top) / container.clientHeight) * 2 - 1) * 5;
+    // --- HİBRİT KONTROLLER ---
+    // Masaüstü
+    window.addEventListener('mousemove', (e) => {
+        if(window.innerWidth > 900) {
+            xV = ((e.clientX / window.innerWidth) - 0.5) * 0.4;
+        }
     });
+
+    // Mobil
+    const lBtn = document.getElementById('lBtn');
+    const rBtn = document.getElementById('rBtn');
+    lBtn.ontouchstart = () => xV = -0.25;
+    rBtn.ontouchstart = () => xV = 0.25;
+    lBtn.ontouchend = rBtn.ontouchend = () => xV *= 0.5;
+
+    window.onresize = () => {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+    };
 
     animate();
 </script>
