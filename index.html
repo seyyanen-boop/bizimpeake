@@ -3,26 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Peake - Pro Controller Fix</title>
+    <title>Peake - Final Ascent</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root { --peake-red: #f55035; --bg-dark: #0d0f12; }
         body { margin: 0; background: var(--bg-dark); color: white; font-family: sans-serif; display: flex; height: 100vh; overflow: hidden; }
         .container { display: flex; width: 100%; height: 100%; }
         @media (max-width: 900px) { .container { flex-direction: column; } }
-        .game-section { flex: 2; position: relative; background: #15171b; min-height: 50vh; }
+        .game-section { flex: 2; position: relative; background: #15171b; border-right: 1px solid #222; }
         #game-container { width: 100%; height: 100%; }
-        .chat-section { flex: 1; display: flex; flex-direction: column; background: var(--bg-dark); border-left: 1px solid #222; }
+        .chat-section { flex: 1; display: flex; flex-direction: column; background: var(--bg-dark); }
         .chat-header { background: var(--peake-red); padding: 12px; text-align: center; font-size: 11px; font-weight: 900; letter-spacing: 2px; }
         #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { padding: 10px 14px; border-radius: 12px; font-size: 14px; max-width: 80%; }
+        .msg { padding: 10px 14px; border-radius: 12px; font-size: 14px; max-width: 80%; line-height: 1.4; }
         .user-msg { align-self: flex-end; background: var(--peake-red); }
         .groq-msg { align-self: flex-start; background: #23272e; border: 1px solid #333; }
         .input-area { padding: 12px; display: flex; gap: 8px; border-top: 1px solid #222; }
         input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #333; background: #1a1c20; color: white; outline: none; }
         button { background: var(--peake-red); color: white; border: none; padding: 0 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .score-ui { position: absolute; top: 20px; left: 20px; font-size: 32px; font-weight: 900; color: var(--peake-red); pointer-events: none; z-index: 10; }
-        .controls-hint { position: absolute; bottom: 20px; left: 20px; font-size: 12px; color: #555; pointer-events: none; }
+        .score-ui { position: absolute; top: 20px; left: 20px; font-size: 32px; font-weight: 900; color: var(--peake-red); pointer-events: none; }
     </style>
 </head>
 <body>
@@ -30,23 +29,22 @@
     <div class="container">
         <div class="game-section">
             <div class="score-ui" id="height">0</div>
-            <div class="controls-hint">WASD: Hareket | SPACE: Zıpla</div>
             <div id="game-container"></div>
         </div>
 
         <div class="chat-section">
-            <div class="chat-header">PEAKE AI TERMINAL</div>
+            <div class="chat-header">PEAKE AI ENGINE</div>
             <div id="messages">Sohbet Hazır!</div>
             <div class="input-area">
-                <input type="text" id="userInput" placeholder="Groq'a sor...">
+                <input type="text" id="userInput" placeholder="Groq'a bir şey sor...">
                 <button id="sendBtn">SOR</button>
             </div>
         </div>
     </div>
 
 <script>
-    // --- GROQ API ---
-    const GROQ_KEY = "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";
+    // --- GROQ API AYARI ---
+    const GROQ_KEY = "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"; 
 
     async function askGroq() {
         const input = document.getElementById("userInput");
@@ -55,12 +53,18 @@
         addMsg(txt, 'user');
         try {
             const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                method: "POST", headers: { "Authorization": `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
-                body: JSON.stringify({ model: "llama3-8b-8192", messages: [{role:"user", content:txt}] })
+                method: "POST", 
+                headers: { "Authorization": `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    model: "llama3-8b-8192", 
+                    messages: [{role:"user", content:txt}],
+                    temperature: 0.7
+                })
             });
             const d = await res.json();
-            addMsg(d.choices[0].message.content, 'groq');
-        } catch(e) { addMsg("Hata! API anahtarını kontrol et.", 'groq'); }
+            if(d.choices) addMsg(d.choices[0].message.content, 'groq');
+            else addMsg("Groq Hatası: Anahtarı kontrol et!", 'groq');
+        } catch(e) { addMsg("Bağlantı kurulamadı.", 'groq'); }
     }
     function addMsg(t, s) {
         const d = document.createElement("div"); d.className = `msg ${s}-msg`; d.innerText = t;
@@ -69,27 +73,28 @@
     document.getElementById("sendBtn").onclick = askGroq;
     document.getElementById("userInput").onkeypress = (e) => { if(e.key === "Enter") askGroq(); };
 
-    // --- 3D ENGINE ---
+    // --- 3D OYUN MOTORU (HATASIZ VERSİYON) ---
     const container = document.getElementById('game-container');
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x15171b);
     
-    const camera = new THREE.PerspectiveCamera(60, container.clientWidth / (container.clientHeight || 1), 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(renderer.domElement);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-    const pLight = new THREE.PointLight(0xf55035, 1.5, 20);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+    const pLight = new THREE.PointLight(0xf55035, 2, 20);
     scene.add(pLight);
 
-    const player = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.4, 0.8, 4, 16),
-        new THREE.MeshStandardMaterial({ color: 0xf55035, emissive: 0xf55035, emissiveIntensity: 0.3 })
-    );
+    // Karakter (Capsule yerine Cylinder kullanarak hatayı çözdük)
+    const playerGeo = new THREE.CylinderGeometry(0.4, 0.4, 1.2, 16);
+    const playerMat = new THREE.MeshStandardMaterial({ color: 0xf55035, emissive: 0xf55035, emissiveIntensity: 0.4 });
+    const player = new THREE.Mesh(playerGeo, playerMat);
     player.position.y = 2;
     scene.add(player);
 
+    // Platformlar
     const platforms = [];
     const pGeo = new THREE.BoxGeometry(3.5, 0.3, 2.5);
     const pMat = new THREE.MeshStandardMaterial({ color: 0x2e3440 });
@@ -110,14 +115,14 @@
     function animate() {
         requestAnimationFrame(animate);
         
-        yV -= 0.012; 
+        yV -= 0.012; // Yerçekimi
         player.position.y += yV;
 
-        if (keys['a']) xV -= 0.02;
-        if (keys['d']) xV += 0.02;
+        if (keys['a']) xV -= 0.025;
+        if (keys['d']) xV += 0.025;
         if (!keys['a'] && !keys['d']) xV *= 0.85; 
         
-        xV = Math.max(Math.min(xV, 0.25), -0.25);
+        xV = Math.max(Math.min(xV, 0.3), -0.3);
         player.position.x += xV;
 
         pLight.position.set(player.position.x, player.position.y, 2);
@@ -125,16 +130,18 @@
         platforms.forEach((p, idx) => {
             if (yV < 0 && player.position.y > p.position.y && player.position.y < p.position.y + 0.6 &&
                 Math.abs(player.position.x - p.position.x) < 2) {
-                yV = keys["space"] ? 0.45 : 0.28;
+                yV = keys["space"] ? 0.48 : 0.3; // Space ile süper zıplama
                 score = Math.max(score, idx * 10);
                 document.getElementById('height').innerText = score;
             }
         });
 
+        // Kamera Takibi
         camera.position.y += (player.position.y + 3 - camera.position.y) * 0.1;
         camera.position.z = 12;
         camera.lookAt(0, camera.position.y - 1, 0);
 
+        // Düşme Kontrolü
         if(player.position.y < -15) {
             player.position.set(0, 5, 0);
             yV = 0; xV = 0;
@@ -144,6 +151,7 @@
     }
 
     window.addEventListener('resize', () => {
+        if (!container.clientWidth) return;
         camera.aspect = container.clientWidth / container.clientHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(container.clientWidth, container.clientHeight);
