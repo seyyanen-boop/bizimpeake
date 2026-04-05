@@ -2,150 +2,148 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Peake Ultimate Fix</title>
+    <title>Peake - Movement Fix</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        body { margin: 0; background: #0a0c0f; color: white; font-family: sans-serif; display: flex; height: 100vh; overflow: hidden; }
+        body { margin: 0; background: #0d0f12; color: white; font-family: sans-serif; display: flex; height: 100vh; overflow: hidden; }
         .container { display: flex; width: 100%; height: 100%; }
         .game-section { flex: 2; position: relative; background: #1a1c20; }
-        #game-container { width: 100%; height: 100%; }
-        .chat-section { flex: 1; display: flex; flex-direction: column; background: #0a0c0f; border-left: 1px solid #333; }
+        #game-container { width: 100%; height: 100%; outline: none; }
+        .chat-section { flex: 1; display: flex; flex-direction: column; background: #0d0f12; border-left: 1px solid #333; }
         #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { padding: 10px; border-radius: 8px; font-size: 14px; max-width: 85%; }
+        .msg { padding: 10px; border-radius: 8px; font-size: 14px; max-width: 80%; }
         .user-msg { align-self: flex-end; background: #f55035; }
         .bot-msg { align-self: flex-start; background: #23272e; }
         .input-area { padding: 10px; display: flex; gap: 5px; border-top: 1px solid #333; }
         input { flex: 1; padding: 10px; background: #1a1c20; border: 1px solid #444; color: white; border-radius: 5px; }
-        button { background: #f55035; border: none; color: white; padding: 10px 20px; cursor: pointer; border-radius: 5px; font-weight: bold; }
+        button { background: #f55035; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 5px; }
         .stamina-ui { position: absolute; bottom: 20px; left: 20px; width: 200px; height: 10px; background: rgba(0,0,0,0.5); border: 1px solid #555; }
         #stamina-fill { width: 100%; height: 100%; background: #a4e61b; }
-        .blocker { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 100; cursor: pointer; }
+        .overlay { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; cursor: pointer; }
     </style>
 </head>
-<body>
+<body onclick="document.getElementById('userInput').blur();">
 
-    <div class="blocker" id="blocker"><h1>BAŞLAMAK İÇİN TIKLA</h1></div>
+    <div class="overlay" id="overlay">
+        <h1>HAREKET ETMEK İÇİN TIKLA</h1>
+        <p>[W] ile Tırman | [S] ile İn | [Q-E] ile Tutun</p>
+    </div>
 
     <div class="container">
         <div class="game-section">
             <div class="stamina-ui"><div id="stamina-fill"></div></div>
-            <div id="game-container"></div>
+            <div id="game-container" tabindex="0"></div>
         </div>
         <div class="chat-section">
-            <div id="messages">Sohbet Hazır!</div>
+            <div id="messages">Sohbet çalışıyor, tırmanışa başla!</div>
             <div class="input-area">
-                <input type="text" id="userInput" placeholder="Mesaj yaz...">
+                <input type="text" id="userInput" placeholder="Mesaj yaz..." autocomplete="off">
                 <button onclick="askGroq()">GÖNDER</button>
             </div>
         </div>
     </div>
 
 <script>
-    // --- GROQ AYARI (GÜNCEL MODEL) ---
-    const GROQ_KEY = "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"; 
-
+    // --- GROQ ---
+    const GROQ_KEY = "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";
     async function askGroq() {
         const input = document.getElementById("userInput");
         const text = input.value.trim();
         if(!text) return;
         addMsg(text, 'user');
         input.value = "";
-
         try {
             const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                    model: "llama-3.3-70b-versatile", // En güncel model
-                    messages: [{role: "user", content: text}] 
-                })
+                body: JSON.stringify({ model: "llama-3.3-70b-versatile", messages: [{role: "user", content: text}] })
             });
             const data = await res.json();
             if(data.choices) addMsg(data.choices[0].message.content, 'bot');
-            else addMsg("Hata: " + (data.error ? data.error.message : "Anahtar geçersiz"), 'bot');
-        } catch(e) { addMsg("Bağlantı kurulamadı!", 'bot'); }
+        } catch(e) { addMsg("Hata!", 'bot'); }
     }
-
     function addMsg(t, s) {
         const d = document.createElement("div"); d.className = `msg ${s}-msg`; d.innerText = t;
         const m = document.getElementById("messages"); m.appendChild(d); m.scrollTop = m.scrollHeight;
     }
 
-    // --- 3D OYUN (SADE VE HATASIZ) ---
+    // --- 3D ENGINE ---
     const container = document.getElementById('game-container');
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
-    
     const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(renderer.domElement);
 
     scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-    const light = new THREE.DirectionalLight(0xffffff, 0.5); light.position.set(5, 10, 5); scene.add(light);
+    camera.position.set(0, 5, 10);
 
-    // Basit Karakter (Eller)
+    // Karakter Elleri (Görseldeki gibi pembe tonlarında)
     const hands = new THREE.Group();
     const handMat = new THREE.MeshStandardMaterial({ color: 0xff80ab });
-    const lHand = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 0.6), handMat);
-    const rHand = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 0.6), handMat);
-    lHand.position.set(-0.8, -0.5, -1);
-    rHand.position.set(0.8, -0.5, -1);
+    const lHand = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.15, 0.5), handMat);
+    const rHand = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.15, 0.5), handMat);
+    lHand.position.set(-0.6, -0.4, -1);
+    rHand.position.set(0.6, -0.4, -1);
     hands.add(lHand, rHand);
     camera.add(hands);
     scene.add(camera);
 
-    // Dağ ve Platformlar
+    // Dağ Kayaları
     const holds = [];
-    for(let i=0; i<40; i++) {
-        const hold = new THREE.Mesh(
-            new THREE.BoxGeometry(2, 0.5, 2), 
-            new THREE.MeshStandardMaterial({ color: 0x5d4037 })
-        );
-        hold.position.set(Math.sin(i)*5, i*3, Math.cos(i)*5);
+    for(let i=0; i<50; i++) {
+        const hold = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 2), new THREE.MeshStandardMaterial({ color: 0x5d4037 }));
+        hold.position.set(Math.sin(i)*4, i*3, Math.cos(i)*4);
         scene.add(hold);
         holds.push(hold);
     }
 
-    // Kontroller
-    let moveY = 0, stamina = 100, isLocked = false;
+    // --- HAREKET SİSTEMİ ---
+    let stamina = 100, active = false;
     const keys = {};
-    document.getElementById('blocker').onclick = () => { isLocked = true; document.getElementById('blocker').style.display = 'none'; };
-    window.onkeydown = (e) => keys[e.key.toLowerCase()] = true;
-    window.onkeyup = (e) => keys[e.key.toLowerCase()] = false;
+
+    document.getElementById('overlay').onclick = () => {
+        active = true;
+        document.getElementById('overlay').style.display = 'none';
+        container.focus(); // Oyun alanına odaklan
+    };
+
+    window.onkeydown = (e) => { keys[e.key.toLowerCase()] = true; };
+    window.onkeyup = (e) => { keys[e.key.toLowerCase()] = false; };
 
     function animate() {
         requestAnimationFrame(animate);
-        if(isLocked) {
-            // Basit Tırmanış Mekaniği
+        if(active) {
+            // Tırmanma/İnme (W-S)
             if(keys['w']) {
-                camera.position.y += 0.1;
-                stamina -= 0.2;
+                camera.position.y += 0.12;
+                stamina -= 0.15;
+                hands.position.y = Math.sin(Date.now() * 0.01) * 0.05; // El sallanması
+            } else if(keys['s']) {
+                camera.position.y -= 0.1;
             } else {
-                camera.position.y -= 0.05; // Yerçekimi
+                camera.position.y -= 0.04; // Yerçekimi
                 if(stamina < 100) stamina += 0.1;
             }
 
-            // Platform Tutma (Otomatik)
+            // Basit Çarpışma: Kayalara çarpınca durur
             holds.forEach(p => {
-                if(Math.abs(camera.position.y - p.position.y) < 1 && 
-                   Math.abs(camera.position.x - p.position.x) < 2) {
+                if(Math.abs(camera.position.y - p.position.y) < 0.8 && 
+                   Math.abs(camera.position.x - p.position.x) < 1.5 &&
+                   Math.abs(camera.position.z - p.position.z) < 1.5) {
                     if(!keys['w']) camera.position.y = p.position.y + 0.5;
                 }
             });
 
+            // Stamina ve Düşme
             if(stamina < 0) { stamina = 0; camera.position.y -= 0.2; }
             document.getElementById('stamina-fill').style.width = stamina + '%';
+            if(camera.position.y < -5) camera.position.y = 5;
         }
         renderer.render(scene, camera);
     }
     animate();
-
-    window.onresize = () => {
-        camera.aspect = container.clientWidth / container.clientHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(container.clientWidth, container.clientHeight);
-    };
 </script>
 </body>
 </html>
