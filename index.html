@@ -2,53 +2,50 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Peake - Ultimate Ascent Simulation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peake - Realistic Visuals Update</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        :root { --peake-red: #f55035; --bg-dark: #0d0f12; }
-        body { margin: 0; background: var(--bg-dark); color: #eee; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; overflow: hidden; }
+        :root { --peake-red: #f55035; --bg-dark: #121418; --text-color: #eee; }
+        body { margin: 0; background: var(--bg-dark); color: var(--text-color); font-family: 'Montserrat', sans-serif; display: flex; height: 100vh; overflow: hidden; touch-action: none; }
         .container { display: flex; width: 100%; height: 100%; }
-
-        /* Oyun Bölümü */
-        .game-section { flex: 2.5; position: relative; background: #1a1c20; cursor: crosshair; }
+        @media (max-width: 900px) { .container { flex-direction: column; } }
+        .game-section { flex: 2.5; position: relative; overflow: hidden; background: #202428; }
         #game-container { width: 100%; height: 100%; outline: none; }
-
-        /* Sohbet Bölümü */
         .chat-section { flex: 1; display: flex; flex-direction: column; background: var(--bg-dark); border-left: 1px solid #333; }
         #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
-        .msg { padding: 8px 12px; border-radius: 10px; max-width: 85%; line-height: 1.4; }
+        .msg { padding: 10px; border-radius: 12px; max-width: 85%; line-height: 1.4; word-wrap: break-word; }
         .user-msg { align-self: flex-end; background: var(--peake-red); color: white; }
-        .bot-msg { align-self: flex-start; background: #23272e; border: 1px solid #444; }
+        .bot-msg { align-self: flex-start; background: #2a3038; border: 1px solid #444; color: #ced4da; }
         .input-area { padding: 10px; display: flex; gap: 5px; border-top: 1px solid #333; }
-        input { flex: 1; padding: 10px; background: #1a1c20; border: 1px solid #444; color: white; border-radius: 5px; }
-
-        /* Peak UI (Görseldeki gibi) */
+        input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #444; background: #1a1c20; color: white; outline: none; }
+        button { background: var(--peake-red); color: white; border: none; padding: 0 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
         .ui-overlay { position: absolute; top: 20px; left: 20px; pointer-events: none; }
-        .stamina-container { width: 300px; height: 12px; background: rgba(0,0,0,0.6); border: 2px solid #444; border-radius: 4px; position: relative; }
-        #stamina-fill { height: 100%; width: 100%; background: #a4e61b; transition: width 0.2s, background 0.3s; }
-        .weight-info { font-size: 12px; color: #aaa; margin-top: 5px; font-weight: bold; }
-        
+        .stamina-bar { width: 300px; height: 12px; background: rgba(0,0,0,0.6); border: 2px solid #444; border-radius: 4px; overflow: hidden; }
+        #stamina-fill { height: 100%; width: 100%; background: #a4e61b; }
+        .weight-info { font-size: 11px; color: #888; margin-top: 3px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
         .inventory { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
-        .slot { width: 50px; height: 50px; background: rgba(0,0,0,0.5); border: 2px solid #555; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-        .slot.active { border-color: var(--peake-red); background: rgba(245, 80, 53, 0.2); }
-
-        .blocker { position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; text-align: center; }
-        .btn-start { padding: 15px 40px; background: var(--peake-red); color: white; border: none; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 18px; margin-top: 20px; }
+        .slot { width: 45px; height: 45px; background: rgba(0,0,0,0.5); border: 2px solid #555; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #aaa; }
+        .slot.active { border-color: var(--peake-red); background: rgba(245, 80, 53, 0.2); color: #fff; }
+        .crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; background: #fff; border-radius: 50%; transform: translate(-50%, -50%); border: 1.5px solid #000; pointer-events: none; }
+        .blocker { position: absolute; inset: 0; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; text-align: center; }
+        .btn-start { padding: 12px 30px; background: var(--peake-red); color: white; border: none; border-radius: 20px; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; }
     </style>
 </head>
 <body>
 
     <div class="blocker" id="blocker">
         <h1 style="color:var(--peake-red); letter-spacing: 5px;">PEAKE</h1>
-        <p style="color:#777;">ZİRVEYE ULAŞMAK İÇİN HER ŞEYİNİ VER</p>
+        <p style="color:#666;">ZİRVEYE ULAŞMAK İÇİN HER ŞEYİNİ VER</p>
         <button class="btn-start" onclick="initGame()">TIRMANIŞA BAŞLA</button>
-        <p style="font-size: 12px; margin-top: 20px; color:#555;">[WASD]: Hareket | [MOUSE]: Bakış | [SHIFT]: Koşma | [1-2-3]: Envanter</p>
+        <p style="font-size: 11px; color:#444; margin-top: 15px;">[WASD]: Hareket | [MOUSE]: Bakış | [SHIFT]: Koşma | [1-2-3]: Envanter</p>
     </div>
 
     <div class="container">
         <div class="game-section">
+            <div class="crosshair"></div>
             <div class="ui-overlay">
-                <div class="stamina-container"><div id="stamina-fill"></div></div>
+                <div class="stamina-bar"><div id="stamina-fill"></div></div>
                 <div class="weight-info">YÜK: <span id="weight-val">2.4</span>kg / 10kg</div>
             </div>
             
@@ -62,55 +59,55 @@
         </div>
 
         <div class="chat-section">
-            <div style="padding:10px; background:#f55035; font-size:10px; font-weight:900; text-align:center;">AI EXPEDITION LOG</div>
+            <div style="padding:10px; background:#f55035; color:white; font-size:11px; font-weight:900; text-align:center; letter-spacing: 1px;">AI EXPEDITION LOG</div>
             <div id="messages"></div>
             <div class="input-area">
                 <input type="text" id="userInput" placeholder="Telsizle konuş..." autocomplete="off">
-                <button onclick="askGroq()" style="background:var(--peake-red); color:white; border:none; padding:10px; border-radius:5px; cursor:pointer;">GÖNDER</button>
+                <button onclick="askGroq()">GÖNDER</button>
             </div>
         </div>
     </div>
 
 <script>
     // --- GLOBAL VARIABLES ---
-    let stamina = 100, weight = 2.4, isRunning = false, isGrounded = true;
-    let fogDensity = 0.02, isLocked = false;
+    let stamina = 100, weight = 2.4, isLocked = false, fogDensity = 0.025;
     const GROQ_KEY = "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";
 
-    // --- 3D SETUP ---
+    // --- 3D SETUP (REALISTIC LOOK UPDATE) ---
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xcedce0);
-    scene.fog = new THREE.FogExp2(0xcedce0, fogDensity);
+    scene.background = new THREE.Color(0xbcccd0); // Sisli, karlı hava rengi
+    scene.fog = new THREE.FogExp2(0xbcccd0, fogDensity);
 
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth*0.7 / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
     const container = document.getElementById('game-container');
+    const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(renderer.domElement);
 
-    // Işıklandırma (Low-poly için sert gölgeler)
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    // Işıklandırma (Low-poly için sert gölgeler, Peak stili)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
     scene.add(ambientLight);
-    const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+    const sun = new THREE.DirectionalLight(0xffffff, 0.6);
     sun.position.set(50, 100, 50);
     scene.add(sun);
 
-    // DAĞ OLUŞTURMA (Low-Poly Karmaşık Yapı)
-    const mountainMat = new THREE.MeshStandardMaterial({ color: 0x7b8d8e, flatShading: true });
-    const snowMat = new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true });
+    // --- DAĞ OLUŞTURMA (STİLİZE LOW-POLY) ---
+    const rockMat = new THREE.MeshStandardMaterial({ color: 0x6e7e81, flatShading: true, roughness: 0.9 });
+    const snowMat = new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, roughness: 0.8 });
 
     function createMountain() {
         const group = new THREE.Group();
-        for(let i=0; i<80; i++) {
-            const size = Math.random() * 5 + 2;
-            const geo = new THREE.BoxGeometry(size, size * 0.4, size);
-            const rock = new THREE.Mesh(geo, i > 60 ? snowMat : mountainMat);
+        for(let i=0; i<90; i++) {
+            const size = Math.random() * 5 + 3;
+            const geo = new THREE.BoxGeometry(size, size * 0.45, size);
             
-            // Sarmal yol yapısı
-            const angle = i * 0.5;
-            const radius = 15 - (i * 0.15);
-            rock.position.set(Math.cos(angle) * radius, i * 1.5, Math.sin(angle) * radius);
-            rock.rotation.set(Math.random(), Math.random(), Math.random());
+            // Yükseldikçe karlı bloklara geçiş (Low-poly tarzda)
+            const rock = new THREE.Mesh(geo, i > 70 ? snowMat : rockMat);
+            
+            const angle = i * 0.45;
+            const radius = 18 - (i * 0.15);
+            rock.position.set(Math.cos(angle) * radius, i * 1.6, Math.sin(angle) * radius);
+            rock.rotation.set(Math.random()*0.2, Math.random(), Math.random()*0.2);
             group.add(rock);
         }
         scene.add(group);
@@ -118,18 +115,18 @@
     }
     const mountain = createMountain();
 
-    // KARAKTER ELLERİ
+    // --- KARAKTER ELLERİ (STİLİZE LOW-POLY MODELLER) ---
     const hands = new THREE.Group();
-    const lHand = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.6), new THREE.MeshStandardMaterial({ color: 0xff80ab }));
-    const rHand = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.6), new THREE.MeshStandardMaterial({ color: 0xffcc80 }));
-    lHand.position.set(-0.7, -0.5, -1);
-    rHand.position.set(0.7, -0.5, -1);
+    // Elleri düz kutu yerine, stilize low-poly silindir ve küre kombinasyonuyla yaptık.
+    const lHand = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 0.8, 8), new THREE.MeshStandardMaterial({ color: 0xff80ab, flatShading: true }));
+    const rHand = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 0.8, 8), new THREE.MeshStandardMaterial({ color: 0xffcc80, flatShading: true }));
+    lHand.position.set(-0.8, -0.6, -1.2);
+    rHand.position.set(0.8, -0.6, -1.2);
     hands.add(lHand, rHand);
     camera.add(hands);
     scene.add(camera);
 
-    camera.position.set(15, 2, 15);
-    camera.lookAt(0, 0, 0);
+    camera.position.set(20, 3, 20); // Kamera açısı Peak tarzı
 
     // --- MEKANİKLER ---
     const keys = {};
@@ -139,43 +136,46 @@
     function initGame() {
         document.getElementById('blocker').style.display = 'none';
         isLocked = true;
-        addMsg("Sistem: Zirveye 400 metre kaldı. Dikkatli ol.", 'bot');
+        addMsg("Sistem: Zirveye 400 metre kaldı. Sis yoğunlaşıyor.", 'bot');
     }
+
+    let isRunning = false;
 
     function animate() {
         requestAnimationFrame(animate);
         if(!isLocked) return;
 
         // 1. Hareket ve Stamina İlişkisi
-        let speed = isRunning ? 0.15 : 0.07;
-        let staminaDrain = (weight * 0.01); // Ağırlık arttıkça enerji daha hızlı gider
+        let speed = isRunning ? 0.18 : 0.09;
+        let staminaDrain = (weight * 0.015);
 
         if(keys['w']) {
             camera.position.y += speed;
             stamina -= isRunning ? staminaDrain * 3 : staminaDrain;
-            // El sallanması
+            // Dinamik El Sallanması (Head Bobbing)
             hands.position.y = Math.sin(Date.now() * 0.01) * 0.05;
+            lHand.position.z = Math.sin(Date.now() * 0.01) * 0.05 - 1.2;
+            rHand.position.z = Math.cos(Date.now() * 0.01) * 0.05 - 1.2;
         }
         if(keys['s']) camera.position.y -= speed;
 
-        // 2. Dinamik Sis ve Hava Durumu
-        // Yükseldikçe sis artar (Video 2'deki gibi)
+        // 2. Dinamik Sis (Yükseldikçe artan gerilim)
         fogDensity = 0.01 + (camera.position.y * 0.001);
         scene.fog.density = fogDensity;
 
         // 3. Stamina Yönetimi
         if(stamina < 0) {
             stamina = 0;
-            camera.position.y -= 0.1; // Enerji biterse aşağı kayar
+            camera.position.y -= 0.15; // Enerji biterse daha hızlı kayar
         } else if(!keys['w'] && stamina < 100) {
-            stamina += 0.1; // Dinlenirken dolar
+            stamina += 0.2; // Dinlenirken dolar
         }
 
         // UI Güncelleme
         const sFill = document.getElementById('stamina-fill');
         sFill.style.width = stamina + "%";
-        if(stamina < 20) sFill.style.background = "#f55035";
-        else sFill.style.background = "#a4e61b";
+        if(stamina < 20) sFill.style.background = "#f55035"; // Kritik
+        else sFill.style.background = "#a4e61b"; // Normal
 
         renderer.render(scene, camera);
     }
@@ -196,7 +196,7 @@
             });
             const data = await res.json();
             addMsg(data.choices[0].message.content, 'bot');
-        } catch(e) { addMsg("Cızırtı... Bağlantı kesiliyor...", 'bot'); }
+        } catch(e) { addMsg("Bağlantı kesiliyor...", 'bot'); }
     }
     function addMsg(t, s) {
         const d = document.createElement("div"); d.className = `msg ${s}-msg`; d.innerText = t;
