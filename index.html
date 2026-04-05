@@ -3,31 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Peake - Pro Controller</title>
+    <title>Peake - Pro Controller Fix</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root { --peake-red: #f55035; --bg-dark: #0d0f12; }
-        body { margin: 0; background: var(--bg-dark); color: white; font-family: 'Inter', sans-serif; display: flex; height: 100vh; overflow: hidden; }
+        body { margin: 0; background: var(--bg-dark); color: white; font-family: sans-serif; display: flex; height: 100vh; overflow: hidden; }
         .container { display: flex; width: 100%; height: 100%; }
         @media (max-width: 900px) { .container { flex-direction: column; } }
-
-        .game-section { flex: 2; position: relative; background: #15171b; }
+        .game-section { flex: 2; position: relative; background: #15171b; min-height: 50vh; }
         #game-container { width: 100%; height: 100%; }
-
         .chat-section { flex: 1; display: flex; flex-direction: column; background: var(--bg-dark); border-left: 1px solid #222; }
-        @media (max-width: 900px) { .chat-section { flex: 1; border-left: none; border-top: 1px solid #222; } }
-
         .chat-header { background: var(--peake-red); padding: 12px; text-align: center; font-size: 11px; font-weight: 900; letter-spacing: 2px; }
         #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
         .msg { padding: 10px 14px; border-radius: 12px; font-size: 14px; max-width: 80%; }
         .user-msg { align-self: flex-end; background: var(--peake-red); }
         .groq-msg { align-self: flex-start; background: #23272e; border: 1px solid #333; }
-
         .input-area { padding: 12px; display: flex; gap: 8px; border-top: 1px solid #222; }
         input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #333; background: #1a1c20; color: white; outline: none; }
         button { background: var(--peake-red); color: white; border: none; padding: 0 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-
-        .score-ui { position: absolute; top: 20px; left: 20px; font-size: 32px; font-weight: 900; color: var(--peake-red); pointer-events: none; }
+        .score-ui { position: absolute; top: 20px; left: 20px; font-size: 32px; font-weight: 900; color: var(--peake-red); pointer-events: none; z-index: 10; }
         .controls-hint { position: absolute; bottom: 20px; left: 20px; font-size: 12px; color: #555; pointer-events: none; }
     </style>
 </head>
@@ -42,7 +36,7 @@
 
         <div class="chat-section">
             <div class="chat-header">PEAKE AI TERMINAL</div>
-            <div id="messages"></div>
+            <div id="messages">Sohbet Hazır!</div>
             <div class="input-area">
                 <input type="text" id="userInput" placeholder="Groq'a sor...">
                 <button id="sendBtn">SOR</button>
@@ -51,8 +45,9 @@
     </div>
 
 <script>
-    // --- GROQ ---
+    // --- GROQ API ---
     const GROQ_KEY = "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";
+
     async function askGroq() {
         const input = document.getElementById("userInput");
         if(!input.value) return;
@@ -65,21 +60,21 @@
             });
             const d = await res.json();
             addMsg(d.choices[0].message.content, 'groq');
-        } catch(e) { addMsg("Bağlantı hatası!", 'groq'); }
+        } catch(e) { addMsg("Hata! API anahtarını kontrol et.", 'groq'); }
     }
     function addMsg(t, s) {
         const d = document.createElement("div"); d.className = `msg ${s}-msg`; d.innerText = t;
         const m = document.getElementById("messages"); m.appendChild(d); m.scrollTop = m.scrollHeight;
     }
     document.getElementById("sendBtn").onclick = askGroq;
-    document.getElementById("userInput").onkeypress = (e) => e.key === "Enter" && askGroq();
+    document.getElementById("userInput").onkeypress = (e) => { if(e.key === "Enter") askGroq(); };
 
     // --- 3D ENGINE ---
     const container = document.getElementById('game-container');
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x15171b);
     
-    const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(60, container.clientWidth / (container.clientHeight || 1), 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(renderer.domElement);
@@ -88,7 +83,6 @@
     const pLight = new THREE.PointLight(0xf55035, 1.5, 20);
     scene.add(pLight);
 
-    // Karakter (Peak Kapsülü)
     const player = new THREE.Mesh(
         new THREE.CapsuleGeometry(0.4, 0.8, 4, 16),
         new THREE.MeshStandardMaterial({ color: 0xf55035, emissive: 0xf55035, emissiveIntensity: 0.3 })
@@ -96,7 +90,6 @@
     player.position.y = 2;
     scene.add(player);
 
-    // Platformlar
     const platforms = [];
     const pGeo = new THREE.BoxGeometry(3.5, 0.3, 2.5);
     const pMat = new THREE.MeshStandardMaterial({ color: 0x2e3440 });
@@ -108,76 +101,53 @@
         platforms.push(p);
     }
 
-    // Hareket Değişkenleri
     let yV = 0, xV = 0, score = 0;
-    const keys = { w: false, a: false, s: false, d: false, space: false };
+    const keys = {};
 
-    // Tuş Dinleyicileri
-    window.addEventListener('keydown', (e) => {
-        const key = e.key.toLowerCase();
-        if(key === ' ') keys.space = true;
-        if(keys.hasOwnProperty(key)) keys[key] = true;
-    });
-    window.addEventListener('keyup', (e) => {
-        const key = e.key.toLowerCase();
-        if(key === ' ') keys.space = false;
-        if(keys.hasOwnProperty(key)) keys[key] = false;
-    });
+    window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; if(e.key === " ") keys["space"] = true; });
+    window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; if(e.key === " ") keys["space"] = false; });
 
     function animate() {
         requestAnimationFrame(animate);
         
-        // Dikey Fizik
         yV -= 0.012; 
         player.position.y += yV;
 
-        // Yatay Fizik (WASD)
-        if (keys.a) xV -= 0.02;
-        if (keys.d) xV += 0.02;
-        if (!keys.a && !keys.d) xV *= 0.85; // Sürtünme
+        if (keys['a']) xV -= 0.02;
+        if (keys['d']) xV += 0.02;
+        if (!keys['a'] && !keys['d']) xV *= 0.85; 
         
-        xV = Math.max(Math.min(xV, 0.25), -0.25); // Hız sınırı
+        xV = Math.max(Math.min(xV, 0.25), -0.25);
         player.position.x += xV;
 
-        // Zıplama (Sadece yerdeyken değil, Peak tarzı esneklik için platformda zıplar)
         pLight.position.set(player.position.x, player.position.y, 2);
 
-        // Çarpışma ve Otomatik Zıplama + Manuel Zıplama (Space)
         platforms.forEach((p, idx) => {
             if (yV < 0 && player.position.y > p.position.y && player.position.y < p.position.y + 0.6 &&
                 Math.abs(player.position.x - p.position.x) < 2) {
-                
-                // Normal zıplama
-                yV = 0.28; 
-                
-                // Eğer Space'e basılıyorsa Süper Zıplama!
-                if(keys.space) yV = 0.45;
-
+                yV = keys["space"] ? 0.45 : 0.28;
                 score = Math.max(score, idx * 10);
                 document.getElementById('height').innerText = score;
             }
         });
 
-        // Kamera
         camera.position.y += (player.position.y + 3 - camera.position.y) * 0.1;
         camera.position.z = 12;
         camera.lookAt(0, camera.position.y - 1, 0);
 
-        // Ölüm
-        if(player.position.y < -10) {
+        if(player.position.y < -15) {
             player.position.set(0, 5, 0);
-            yV = 0; xV = 0; score = 0;
-            document.getElementById('height').innerText = "0";
+            yV = 0; xV = 0;
         }
 
         renderer.render(scene, camera);
     }
 
-    window.onresize = () => {
+    window.addEventListener('resize', () => {
         camera.aspect = container.clientWidth / container.clientHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(container.clientWidth, container.clientHeight);
-    };
+    });
 
     animate();
 </script>
