@@ -24,14 +24,23 @@ let playerModel;
 loader.load('assets/el.glb', function(gltf) {
     playerModel = gltf.scene;
     
-    // MODEL BOYUTU: Minicik kalmaması için 10 kat büyüttük
-    playerModel.scale.set(10.0, 10.0, 10.0); 
+    // 1. BOYUT AYARI: Elleri insani bir boyuta getirmek için
+    // 10.0 çok büyük gelmişti, 2.0 ideal bir insan eli boyutu olacaktır.
+    playerModel.scale.set(2.0, 2.0, 2.0); 
     
-    // MODEL KONUMU: Tam karşımızda ve biraz aşağıda durması için
-    playerModel.position.set(0, -1.5, -2.0); 
+    // 2. KONUM AYARI (X, Y, Z)
+    // x=0 (tam orta), y=-1.0 (ekranın biraz altında), z=-1.8 (kameradan normal bir mesafe)
+    playerModel.position.set(0, -1.0, -1.8); 
     
-    // MODEL AÇISI: Eğer eller sana bakmıyorsa burayı 0, Math.PI, veya Math.PI/2 yap
-    playerModel.rotation.y = Math.PI; 
+    // 3. AÇI AYARI (Y-rotasyon)
+    // Modelin sana bakması ve "bembeyaz" kalmaması için gerekli.
+    // Eğer eller hala bembeyaz kalırsa, bu satırı silip playerModel.rotation.y = 0 yap.
+    playerModel.rotation.y = Math.PI; // Modelin sana bakmasını sağlar
+
+    camera.add(playerModel); // Elleri kameraya sabitle
+    scene.add(camera);
+    console.log("El ayarları yapıldı!");
+});
 
     camera.add(playerModel); // ELİ KAMERAYA BAĞLADIK (Dönme bitti, sabitlendi)
     console.log("El modeli başarıyla kameraya bağlandı!");
